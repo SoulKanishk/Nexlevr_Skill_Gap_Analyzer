@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexlevr — Skill Gap Analyzer</title>
+<style>
+  :root{
+    --ink:#1B2140;
+    --ink-soft:#3A4066;
+    --bg:#F7F8FB;
+    --panel:#FFFFFF;
+    --border:#E4E7F0;
+    --gold:#C98A3A;
+    --gold-soft:#F3E2C8;
+    --coral:#E1573F;
+    --coral-soft:#FBE4DF;
+    --sage:#2F8F6E;
+    --sage-soft:#DFF0E8;
+    --muted:#6B7280;
+    --shadow: 0 1px 2px rgba(27,33,64,0.04), 0 8px 24px rgba(27,33,64,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family: Calibri, "Segoe UI", Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    max-width:1180px;
+    margin:0 auto;
+    padding:2.5rem 1.75rem 4rem;
+  }
+  header.hero{
+    display:flex;
+    flex-direction:column;
+    gap:0.4rem;
+    margin-bottom:2.25rem;
+  }
+  .eyebrow{
+    font-size:0.78rem;
+    letter-spacing:0.16em;
+    font-weight:700;
+    color:var(--gold);
+    text-transform:uppercase;
+  }
+  h1{
+    font-family: Cambria, "Times New Roman", serif;
+    font-weight:700;
+    font-size:2.35rem;
+    margin:0;
+    line-height:1.1;
+    color:var(--ink);
+  }
+  .subhead{
+    color:var(--muted);
+    font-size:1.02rem;
+    max-width:640px;
+    margin-top:0.35rem;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap:1.75rem;
+    align-items:start;
+  }
+  @media (max-width: 880px){
+    .layout{grid-template-columns: 1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:1.6rem 1.6rem 1.8rem;
+  }
+
+  .panel h2{
+    font-family: Cambria, serif;
+    font-size:1.15rem;
+    margin:0 0 0.2rem;
+  }
+  .panel .panel-sub{
+    color:var(--muted);
+    font-size:0.86rem;
+    margin-bottom:1.3rem;
+  }
+
+  label.field-label{
+    display:block;
+    font-size:0.82rem;
+    font-weight:700;
+    color:var(--ink-soft);
+    margin-bottom:0.4rem;
+  }
+
+  select#roleSelect{
+    width:100%;
+    padding:0.65rem 0.75rem;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:var(--bg);
+    color:var(--ink);
+    font-size:0.95rem;
+    font-family: Calibri, sans-serif;
+    margin-bottom:1.5rem;
+  }
+  select#roleSelect:focus, input[type=range]:focus{
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+
+  .skill-row{
+    margin-bottom:1.15rem;
+  }
+  .skill-row-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:0.3rem;
+  }
+  .skill-name{
+    font-size:0.88rem;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .skill-value{
+    font-size:0.82rem;
+    color:var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slider-wrap{
+    position:relative;
+    height:28px;
+    display:flex;
+    align-items:center;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:6px;
+    border-radius:3px;
+    background:var(--border);
+    margin:0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--ink);
+    border:3px solid #fff;
+    box-shadow:0 0 0 1px var(--border);
+    cursor:pointer;
+    margin-top:0px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px;height:18px;
+    border-radius:50%;
+    background:var(--ink);
+    border:3px solid #fff;
+    box-shadow:0 0 0 1px var(--border);
+    cursor:pointer;
+  }
+  .target-tick{
+    position:absolute;
+    top:3px;
+    width:2px;
+    height:20px;
+    background:var(--gold);
+    pointer-events:none;
+  }
+  .target-tick::after{
+    content:"target";
+    position:absolute;
+    top:-18px;
+    left:50%;
+    transform:translateX(-50%);
+    font-size:0.62rem;
+    color:var(--gold);
+    font-weight:700;
+    white-space:nowrap;
+    letter-spacing:0.03em;
+  }
+
+  .results-top{
+    display:grid;
+    grid-template-columns: 200px 1fr;
+    gap:1.75rem;
+    align-items:center;
+    margin-bottom:1.6rem;
+  }
+  @media (max-width: 620px){
+    .results-top{grid-template-columns:1fr; justify-items:center; text-align:center;}
+  }
+
+  .compass{
+    position:relative;
+    width:180px;
+    height:180px;
+  }
+  .compass svg{ transform: rotate(-90deg); }
+  .compass-label{
+    position:absolute;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .compass-pct{
+    font-family:Cambria, serif;
+    font-weight:700;
+    font-size:2.1rem;
+    color:var(--ink);
+    line-height:1;
+  }
+  .compass-word{
+    font-size:0.72rem;
+    color:var(--muted);
+    margin-top:0.2rem;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+
+  .role-readout h2{
+    margin-bottom:0.35rem;
+  }
+  .role-readout p{
+    color:var(--muted);
+    font-size:0.92rem;
+    line-height:1.5;
+    margin:0;
+  }
+  .status-chip{
+    display:inline-block;
+    margin-top:0.6rem;
+    padding:0.25rem 0.65rem;
+    border-radius:999px;
+    font-size:0.76rem;
+    font-weight:700;
+  }
+  .chip-ready{ background:var(--sage-soft); color:var(--sage); }
+  .chip-close{ background:var(--gold-soft); color:#8a5c1e; }
+  .chip-gap{ background:var(--coral-soft); color:var(--coral); }
+
+  .bars{
+    display:flex;
+    flex-direction:column;
+    gap:0.85rem;
+    margin-bottom:0.5rem;
+  }
+  .bar-row{
+    display:grid;
+    grid-template-columns: 190px 1fr 44px;
+    align-items:center;
+    gap:0.75rem;
+  }
+  @media (max-width:620px){
+    .bar-row{grid-template-columns: 1fr; gap:0.3rem;}
+    .bar-row .bar-pct{text-align:left;}
+  }
+  .bar-label{
+    font-size:0.85rem;
+    color:var(--ink-soft);
+  }
+  .bar-track{
+    position:relative;
+    height:10px;
+    background:var(--border);
+    border-radius:6px;
+    overflow:visible;
+  }
+  .bar-fill{
+    height:100%;
+    border-radius:6px;
+    transition: width 0.25s ease;
+  }
+  .bar-target-tick{
+    position:absolute;
+    top:-3px;
+    width:2px;
+    height:16px;
+    background:var(--ink);
+    opacity:0.35;
+  }
+  .bar-pct{
+    font-size:0.8rem;
+    color:var(--muted);
+    text-align:right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .divider{
+    height:1px;
+    background:var(--border);
+    margin:1.6rem 0;
+  }
+
+  .path-title{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:0.3rem;
+  }
+  .path-title h2{margin:0;}
+  .path-count{
+    font-size:0.8rem;
+    color:var(--muted);
+  }
+  .trail{
+    position:relative;
+    margin-top:1.1rem;
+    padding-left:2.1rem;
+  }
+  .trail::before{
+    content:"";
+    position:absolute;
+    left:11px;
+    top:6px;
+    bottom:6px;
+    width:2px;
+    background: repeating-linear-gradient(to bottom, var(--gold) 0 6px, transparent 6px 12px);
+  }
+  .trail-step{
+    position:relative;
+    padding-bottom:1.15rem;
+  }
+  .trail-step:last-child{padding-bottom:0;}
+  .trail-marker{
+    position:absolute;
+    left:-2.1rem;
+    top:0;
+    width:24px;height:24px;
+    border-radius:50%;
+    background:var(--ink);
+    color:#fff;
+    font-size:0.78rem;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .trail-body{
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:0.75rem 0.9rem;
+  }
+  .trail-skill{
+    font-size:0.68rem;
+    font-weight:700;
+    letter-spacing:0.05em;
+    text-transform:uppercase;
+    color:var(--coral);
+    margin-bottom:0.15rem;
+  }
+  .trail-course{
+    font-size:0.94rem;
+    font-weight:600;
+    color:var(--ink);
+  }
+  .trail-gap{
+    font-size:0.8rem;
+    color:var(--muted);
+    margin-top:0.15rem;
+  }
+  .all-clear{
+    color:var(--sage);
+    font-size:0.92rem;
+    padding:0.9rem 0;
+  }
+
+  footer.note{
+    margin-top:2rem;
+    font-size:0.78rem;
+    color:var(--muted);
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="hero">
+    <span class="eyebrow">Nexlevr Prototype</span>
+    <h1>Skill Gap Analyzer</h1>
+    <p class="subhead">Pick a target role, rate your current skills, and see exactly what to learn next — and in what order.</p>
+  </header>
+
+  <div class="layout">
+
+    <div class="panel" id="controlPanel">
+      <h2>Set up your analysis</h2>
+      <p class="panel-sub">Choose where you're headed, then rate yourself honestly. The gold tick on each slider marks the level the role typically expects.</p>
+
+      <label class="field-label" for="roleSelect">Target role</label>
+      <select id="roleSelect"></select>
+
+      <div id="skillSliders"></div>
+    </div>
+
+    <div class="panel">
+      <div class="results-top">
+        <div class="compass">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="78" fill="none" stroke="#E4E7F0" stroke-width="14"/>
+            <circle id="compassArc" cx="90" cy="90" r="78" fill="none" stroke="#1B2140" stroke-width="14" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/>
+          </svg>
+          <div class="compass-label">
+            <div class="compass-pct" id="readinessPct">0%</div>
+            <div class="compass-word">job ready</div>
+          </div>
+        </div>
+        <div class="role-readout">
+          <h2 id="roleName">—</h2>
+          <p id="roleDesc"></p>
+          <span class="status-chip" id="statusChip"></span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <h2>Skill breakdown</h2>
+      <p class="panel-sub">Your current level vs. what this role typically expects.</p>
+      <div class="bars" id="barsContainer"></div>
+
+      <div class="divider"></div>
+
+      <div class="path-title">
+        <h2>Recommended learning path</h2>
+        <span class="path-count" id="pathCount"></span>
+      </div>
+      <p class="panel-sub" style="margin-top:0.2rem;">Ordered by the size of the gap — biggest first.</p>
+      <div class="trail" id="trailContainer"></div>
+    </div>
+
+  </div>
+
+  <footer class="note">Prototype for internal review · levels are self-rated on a 0–100 scale · not connected to live course data</footer>
+</div>
+
+<script>
+// ---------- Data model ----------
+const COURSES = {
+  "Stakeholder Communication": "Influencing Without Authority",
+  "Data-Informed Roadmapping": "Roadmapping with Data",
+  "Pricing & Monetization": "Pricing Strategy Fundamentals",
+  "User Research": "User Research Synthesis",
+  "Prioritization Frameworks": "RICE, ICE & Prioritization Models",
+  "Cross-functional Leadership": "Leading Without a Title",
+  "SQL & Analytics": "SQL for Product Analytics",
+  "Statistics": "Statistics for Decision Making",
+  "Experimentation & A/B Testing": "Running Trustworthy A/B Tests",
+  "Data Visualization": "Storytelling with Data",
+  "Python": "Python for Data Analysis",
+  "Visual Design Fundamentals": "Design Fundamentals for Non-Designers",
+  "Prototyping": "Rapid Prototyping in Figma",
+  "Interaction Design": "Interaction Design Patterns",
+  "Usability Testing": "Running Usability Tests That Work",
+  "Design Systems": "Building & Scaling Design Systems",
+  "JavaScript": "Modern JavaScript Fundamentals",
+  "Frontend Frameworks": "React in Practice",
+  "System Design": "System Design for Frontend Engineers",
+  "Testing & QA": "Writing Tests That Matter",
+  "Performance Optimization": "Web Performance Deep Dive",
+  "Campaign Strategy": "Multi-Channel Campaign Strategy",
+  "Brand Positioning": "Brand Positioning Fundamentals",
+  "Content Strategy": "Content Strategy That Converts",
+  "Marketing Analytics": "Marketing Analytics & Attribution",
+  "Copywriting": "Copywriting That Converts",
+  "Negotiation": "Negotiation Tactics for Sales",
+  "Pipeline Management": "Building a Predictable Pipeline",
+  "Consultative Selling": "Consultative Selling Skills",
+  "Account Planning": "Strategic Account Planning",
+  "Cloud Infrastructure": "Cloud Infrastructure Fundamentals",
+  "CI/CD Pipelines": "CI/CD in Practice",
+  "Monitoring & Observability": "Monitoring & Observability Basics",
+  "Incident Response": "Incident Response Playbooks",
+  "Infrastructure as Code": "Infrastructure as Code with Terraform",
+  "Customer Empathy": "Practicing Customer Empathy",
+  "Renewal & Retention Strategy": "Retention Strategy Playbook",
+  "Escalation Management": "Managing Escalations Calmly",
+  "Financial Modeling": "Financial Modeling Fundamentals",
+  "Forecasting": "Forecasting for Operators",
+  "Team Management": "First-Time Manager Essentials",
+  "Project Planning": "Project Planning & Scheduling",
+  "Risk Management": "Practical Risk Management",
+  "Budgeting": "Budgeting for Project Managers"
+};
+
+const ROLES = [
+  {
+    name: "Product Manager",
+    desc: "Owns the product roadmap and works across design, engineering, and go-to-market.",
+    skills: [
+      { name: "Stakeholder Communication", target: 80 },
+      { name: "Data-Informed Roadmapping", target: 75 },
+      { name: "Pricing & Monetization", target: 55 },
+      { name: "User Research", target: 70 },
+      { name: "Prioritization Frameworks", target: 75 },
+      { name: "Cross-functional Leadership", target: 65 },
+    ]
+  },
+  {
+    name: "Data Analyst",
+    desc: "Turns raw data into decisions, working closely with product and operations teams.",
+    skills: [
+      { name: "SQL & Analytics", target: 85 },
+      { name: "Statistics", target: 70 },
+      { name: "Data Visualization", target: 75 },
+      { name: "Experimentation & A/B Testing", target: 60 },
+      { name: "Python", target: 55 },
+      { name: "Stakeholder Communication", target: 60 },
+    ]
+  },
+  {
+    name: "UX Designer",
+    desc: "Designs end-to-end product experiences grounded in user research.",
+    skills: [
+      { name: "Visual Design Fundamentals", target: 80 },
+      { name: "Prototyping", target: 80 },
+      { name: "User Research", target: 70 },
+      { name: "Interaction Design", target: 75 },
+      { name: "Usability Testing", target: 60 },
+      { name: "Design Systems", target: 55 },
+    ]
+  },
+  {
+    name: "Frontend Engineer",
+    desc: "Builds and ships the interfaces users interact with directly.",
+    skills: [
+      { name: "JavaScript", target: 85 },
+      { name: "Frontend Frameworks", target: 80 },
+      { name: "System Design", target: 55 },
+      { name: "Testing & QA", target: 60 },
+      { name: "Performance Optimization", target: 55 },
+      { name: "Visual Design Fundamentals", target: 40 },
+    ]
+  },
+  {
+    name: "Marketing Manager",
+    desc: "Plans and runs campaigns that drive awareness, demand, and retention.",
+    skills: [
+      { name: "Campaign Strategy", target: 80 },
+      { name: "Brand Positioning", target: 65 },
+      { name: "Content Strategy", target: 70 },
+      { name: "Marketing Analytics", target: 65 },
+      { name: "Copywriting", target: 60 },
+      { name: "Stakeholder Communication", target: 60 },
+    ]
+  },
+  {
+    name: "Sales Manager",
+    desc: "Leads a sales team and owns pipeline health and revenue targets.",
+    skills: [
+      { name: "Negotiation", target: 80 },
+      { name: "Pipeline Management", target: 75 },
+      { name: "Consultative Selling", target: 75 },
+      { name: "Account Planning", target: 60 },
+      { name: "Team Management", target: 65 },
+      { name: "Forecasting", target: 55 },
+    ]
+  },
+  {
+    name: "DevOps Engineer",
+    desc: "Keeps infrastructure reliable, automated, and observable.",
+    skills: [
+      { name: "Cloud Infrastructure", target: 85 },
+      { name: "CI/CD Pipelines", target: 80 },
+      { name: "Monitoring & Observability", target: 70 },
+      { name: "Incident Response", target: 65 },
+      { name: "Infrastructure as Code", target: 70 },
+      { name: "System Design", target: 55 },
+    ]
+  },
+  {
+    name: "Customer Success Manager",
+    desc: "Owns the post-sale relationship and drives renewal and expansion.",
+    skills: [
+      { name: "Customer Empathy", target: 80 },
+      { name: "Renewal & Retention Strategy", target: 70 },
+      { name: "Escalation Management", target: 60 },
+      { name: "Stakeholder Communication", target: 70 },
+      { name: "Account Planning", target: 55 },
+      { name: "Marketing Analytics", target: 40 },
+    ]
+  },
+  {
+    name: "Project Manager",
+    desc: "Plans, coordinates, and delivers cross-functional projects on time.",
+    skills: [
+      { name: "Project Planning", target: 80 },
+      { name: "Risk Management", target: 65 },
+      { name: "Budgeting", target: 55 },
+      { name: "Stakeholder Communication", target: 75 },
+      { name: "Team Management", target: 60 },
+      { name: "Prioritization Frameworks", target: 60 },
+    ]
+  },
+];
+
+// ---------- State ----------
+let currentRoleIndex = 0;
+let currentLevels = {}; // skillName -> value
+
+function defaultStartLevel(target){
+  // start the user a bit below target so the demo shows a realistic, non-trivial gap
+  return Math.max(10, Math.round(target * 0.55));
+}
+
+function initLevelsForRole(role){
+  currentLevels = {};
+  role.skills.forEach(s => { currentLevels[s.name] = defaultStartLevel(s.target); });
+}
+
+// ---------- Render: controls ----------
+const roleSelect = document.getElementById("roleSelect");
+const skillSliders = document.getElementById("skillSliders");
+
+ROLES.forEach((r, i) => {
+  const opt = document.createElement("option");
+  opt.value = i;
+  opt.textContent = r.name;
+  roleSelect.appendChild(opt);
+});
+
+roleSelect.addEventListener("change", (e) => {
+  currentRoleIndex = parseInt(e.target.value, 10);
+  initLevelsForRole(ROLES[currentRoleIndex]);
+  renderSliders();
+  renderResults();
+});
+
+function renderSliders(){
+  const role = ROLES[currentRoleIndex];
+  skillSliders.innerHTML = "";
+  role.skills.forEach(skill => {
+    const row = document.createElement("div");
+    row.className = "skill-row";
+
+    const top = document.createElement("div");
+    top.className = "skill-row-top";
+    const nameEl = document.createElement("span");
+    nameEl.className = "skill-name";
+    nameEl.textContent = skill.name;
+    const valEl = document.createElement("span");
+    valEl.className = "skill-value";
+    valEl.id = "val-" + slug(skill.name);
+    valEl.textContent = currentLevels[skill.name];
+    top.appendChild(nameEl);
+    top.appendChild(valEl);
+
+    const wrap = document.createElement("div");
+    wrap.className = "slider-wrap";
+
+    const tick = document.createElement("div");
+    tick.className = "target-tick";
+    tick.style.left = `calc(${skill.target}% - 1px)`;
+
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = "0";
+    input.max = "100";
+    input.value = currentLevels[skill.name];
+    input.setAttribute("aria-label", skill.name + " current level");
+    input.addEventListener("input", (e) => {
+      currentLevels[skill.name] = parseInt(e.target.value, 10);
+      valEl.textContent = currentLevels[skill.name];
+      renderResults();
+    });
+
+    wrap.appendChild(input);
+    wrap.appendChild(tick);
+
+    row.appendChild(top);
+    row.appendChild(wrap);
+    skillSliders.appendChild(row);
+  });
+}
+
+function slug(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+// ---------- Render: results ----------
+const compassArc = document.getElementById("compassArc");
+const readinessPct = document.getElementById("readinessPct");
+const roleName = document.getElementById("roleName");
+const roleDesc = document.getElementById("roleDesc");
+const statusChip = document.getElementById("statusChip");
+const barsContainer = document.getElementById("barsContainer");
+const trailContainer = document.getElementById("trailContainer");
+const pathCount = document.getElementById("pathCount");
+
+const CIRC = 2 * Math.PI * 78; // ~490
+
+function renderResults(){
+  const role = ROLES[currentRoleIndex];
+  roleName.textContent = role.name;
+  roleDesc.textContent = role.desc;
+
+  // readiness = average of min(current/target, 1) across skills
+  let sum = 0;
+  role.skills.forEach(s => {
+    sum += Math.min(currentLevels[s.name] / s.target, 1);
+  });
+  const readiness = Math.round((sum / role.skills.length) * 100);
+
+  readinessPct.textContent = readiness + "%";
+  const offset = CIRC - (CIRC * readiness / 100);
+  compassArc.style.strokeDasharray = CIRC;
+  compassArc.style.strokeDashoffset = offset;
+
+  let arcColor = "var(--coral)";
+  let chipClass = "chip-gap";
+  let chipText = "Early stage";
+  if (readiness >= 85) { arcColor = "#2F8F6E"; chipClass = "chip-ready"; chipText = "Job ready"; }
+  else if (readiness >= 60) { arcColor = "#C98A3A"; chipClass = "chip-close"; chipText = "Almost there"; }
+  compassArc.setAttribute("stroke", arcColor === "var(--coral)" ? "#E1573F" : arcColor);
+  statusChip.className = "status-chip " + chipClass;
+  statusChip.textContent = chipText;
+
+  // bars
+  barsContainer.innerHTML = "";
+  role.skills.forEach(s => {
+    const cur = currentLevels[s.name];
+    const row = document.createElement("div");
+    row.className = "bar-row";
+
+    const label = document.createElement("div");
+    label.className = "bar-label";
+    label.textContent = s.name;
+
+    const track = document.createElement("div");
+    track.className = "bar-track";
+    const fill = document.createElement("div");
+    fill.className = "bar-fill";
+    fill.style.width = cur + "%";
+    fill.style.background = cur >= s.target ? "#2F8F6E" : (cur >= s.target * 0.7 ? "#C98A3A" : "#E1573F");
+    const tick = document.createElement("div");
+    tick.className = "bar-target-tick";
+    tick.style.left = `calc(${s.target}% - 1px)`;
+    track.appendChild(fill);
+    track.appendChild(tick);
+
+    const pct = document.createElement("div");
+    pct.className = "bar-pct";
+    pct.textContent = cur + " / " + s.target;
+
+    row.appendChild(label);
+    row.appendChild(track);
+    row.appendChild(pct);
+    barsContainer.appendChild(row);
+  });
+
+  // learning path: skills below target, sorted by gap desc
+  const gaps = role.skills
+    .map(s => ({ name: s.name, gap: Math.max(s.target - currentLevels[s.name], 0), target: s.target, current: currentLevels[s.name] }))
+    .filter(s => s.gap > 0)
+    .sort((a, b) => b.gap - a.gap);
+
+  pathCount.textContent = gaps.length + (gaps.length === 1 ? " course" : " courses");
+  trailContainer.innerHTML = "";
+
+  if (gaps.length === 0) {
+    trailContainer.innerHTML = '<div class="all-clear">You meet or exceed every target skill level for this role. No gaps to close right now.</div>';
+    return;
+  }
+
+  gaps.forEach((g, i) => {
+    const step = document.createElement("div");
+    step.className = "trail-step";
+
+    const marker = document.createElement("div");
+    marker.className = "trail-marker";
+    marker.textContent = i + 1;
+
+    const body = document.createElement("div");
+    body.className = "trail-body";
+    const skillTag = document.createElement("div");
+    skillTag.className = "trail-skill";
+    skillTag.textContent = g.name;
+    const course = document.createElement("div");
+    course.className = "trail-course";
+    course.textContent = COURSES[g.name] || (g.name + " Fundamentals");
+    const gapText = document.createElement("div");
+    gapText.className = "trail-gap";
+    gapText.textContent = `Currently ${g.current} / ${g.target} — ${g.gap} point gap`;
+
+    body.appendChild(skillTag);
+    body.appendChild(course);
+    body.appendChild(gapText);
+
+    step.appendChild(marker);
+    step.appendChild(body);
+    trailContainer.appendChild(step);
+  });
+}
+
+// ---------- Init ----------
+initLevelsForRole(ROLES[currentRoleIndex]);
+renderSliders();
+renderResults();
+</script>
+</body>
+</html>
