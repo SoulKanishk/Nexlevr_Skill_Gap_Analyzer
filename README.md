@@ -55,6 +55,4 @@ If any of that excites you, jump in.
 
 Open an issue, suggest a role, add a skill set, or send a PR — all contributions help shape where this goes.
 
-## License
 
-MIT — build on it, remix it, ship it.
